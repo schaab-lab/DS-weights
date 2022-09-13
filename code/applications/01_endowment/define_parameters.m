@@ -36,6 +36,8 @@ param.u1inv = @(x) x.^(-1/param.gamma);
 
 % Policies:
 param.num_theta = 10;
+param.theta_min = 0;
+param.theta_max = 1.5;
 
 
 %% VARIABLE INPUTS

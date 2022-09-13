@@ -4,7 +4,7 @@
 % in an endowment economy.
 % 
 % Code written by Eduardo Davila and Andreas Schaab.
-% Current version: August 2022. First version: August 2022.
+% Current version: September 2022. First version: August 2022.
 % 
 % If you find this code helpful in your own work, please cite:
 % - Davila, E. and A. Schaab. Welfare Assessments with Heterogeneous
@@ -51,7 +51,7 @@ CE = cell(param.num_theta, 1); % each cell stores data for one policy
 for j = 1:param.num_theta
 
     % Initialize policy stance:
-    CE{j}.theta = 0 + (j-1)/(param.num_theta-1);
+    CE{j}.theta = param.theta_min + (param.theta_max - param.theta_min) * (j-1)/(param.num_theta-1);
 
     % Transfer policy, income, and consumption:
     CE{j}.T = 1 - G.z;
@@ -111,6 +111,7 @@ beta = param.dt * exp(-param.rho * param.t);
 omega_ind = cell(param.num_theta, 1);
 omega_dyn = cell(param.num_theta, 1);
 omega_sto = cell(param.num_theta, 1);
+omega_sto_norm = cell(param.num_theta, 1);
 
 % Pareto weights:
 alpha = ones(2, 1);
@@ -139,8 +140,13 @@ for j = 1:param.num_theta
     % Stochastic component:
     for n = 1:param.N
         omega_sto{j}{n} = P{n} .* (CE{j}.u1') ./ (P{n}' * (CE{j}.u1'))';
+        % wrong: omega_sto_norm{j}{n} = (CE{j}.u1') ./ ((P{n}' * (CE{j}.u1'))');
+        omega_sto_norm{j}{n} = (CE{j}.u1')' ./ sum((CE{j}.u1')' .* P{n}, 2);
     end
-
+    % (CE{j}.u1')' ./ sum((CE{j}.u1')' .* P{n}, 2)
+    % Regardless of where you START, your marginal utility in state x is: repmat((CE{j}.u1')', [2, 1])
+    % Regardless of where you END UP, your average marginal utility is: repmat(sum((CE{j}.u1')' .* P{n}, 2), [1, 2])
+    % repmat((CE{j}.u1')', [2, 1]) ./ repmat(sum((CE{j}.u1')' .* P{n}, 2), [1, 2])
 end
 
 
@@ -157,7 +163,7 @@ duc{param.num_theta} = duc{param.num_theta - 1};
 
 %% AGGREGATE ADDITIVE DECOMPOSITION
 
-[AE, RS, IS, RE] = deal(cell(param.num_theta, 1));
+[AE, RS, IS, RE, DS_lifetime_effect] = deal(cell(param.num_theta, 1));
 
 g = reshape(G.g, [2, 1]);
 
@@ -166,17 +172,41 @@ for j = 1:param.num_theta
     % Aggregate efficiency:
     AE{j} = 0; 
     for n = 1:param.N
-        AE{j} = AE{j} + (omega_ind{j}' * g) * (omega_dyn{j}(:, n)' * g) * (sum( (omega_sto{j}{n} * g) .* duc{j} ));
+        AE{j} = AE{j} + (omega_dyn{j}(:, n)' * g) ...
+            * sum(sum( omega_sto_norm{j}{n} .* (P{n} .* g) )) ...
+            * sum(sum( duc{j}' .* (P{n} .* g) ));
     end
+    AE{j} = (omega_ind{j}' * g) * AE{j};
     
     % Risk-sharing:
-    %RS =
+    RS{j} = 0;
+    for n = 1:param.N
+        RS{j} = RS{j} + (omega_dyn{j}(:, n)' * g) ...
+            * sum(sum( (omega_sto_norm{j}{n} .* duc{j}') .* (P{n} .* g) ));
+    end
+    RS{j} = (omega_ind{j}' * g) * RS{j} - AE{j};
     
     % Intertemporal-sharing:
-    %IS = 
+    IS{j} = 0;
+    for n = 1:param.N
+        IS{j} = IS{j} + sum(sum( omega_dyn{j}(:, n) .* (omega_sto_norm{j}{n} .* duc{j}') .* (P{n} .* g) ));
+    end
+    IS{j} = (omega_ind{j}' * g) * IS{j} - (RS{j} + AE{j});
     
     % Redistribution: 
-    %RE = 
+    % covariance between omega_ind{j} and DS_lifetime_effect{j}
+    % DS_lifetime_effect{j} = zeros(2, 1);
+    % for n = 1:param.N
+    %     DS_lifetime_effect{j} = DS_lifetime_effect{j} ...
+    %         + omega_dyn{j}(:, n) .* (omega_sto{j}{n}' * duc{j});
+    % end
+    temp = zeros(2, 2);
+    for n = 1:param.N
+        temp = temp + omega_dyn{j}(:, n) .* (omega_sto_norm{j}{n} .* duc{j}') .* (P{n} .* g);
+    end
+
+    RE{j} = sum(sum(omega_ind{j} .* temp));
+    RE{j} = RE{j} - (IS{j} + RS{j} + AE{j});
 
 end
 
@@ -186,12 +216,24 @@ run_time = toc(run_time); fprintf('\n\nAlgorithm converged. Run-time of: %.2f se
 
 fprintf('\nPlotting Figures...\n');
 
+[vec_theta, vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));
+for j = 1:param.num_theta
+    vec_theta(j) = CE{j}.theta;
+    vec_AE(j) = AE{j};
+    vec_RS(j) = RS{j};
+    vec_IS(j) = IS{j};
+    vec_RE(j) = RE{j};
+end
+
 figure; hold on;
-l1 = plot(G.z', G.V0');
-l2 = plot(G.z', V');
+l1 = plot(vec_theta, vec_AE);
+l2 = plot(vec_theta, vec_RS);
+l3 = plot(vec_theta, vec_IS);
+l4 = plot(vec_theta, vec_RE);
 hold off;
-legend([l1, l2], {'Value function: permanent', ['Value function: $\theta=$', num2str(theta)]}, ...
-    'Interpreter', 'Latex', 'box', 'off', 'Location', 'SouthEast')
+legend([l1, l2, l3, l4], ...
+    {'Aggregate Efficiency', 'Risk-Sharing', 'Intertemporal-Sharing', 'Redistribution'}, ...
+    'Interpreter', 'Latex', 'box', 'off', 'Location', 'NorthEast')
 
 
 diary off

@@ -41,13 +41,20 @@ param.theta_min = 0.00;
 param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 
 % Time grid: 
+param.time_grid_adjustment = 0;
 param.T = 1000; 
-param.N = 1000; 
+param.N = 100; 
 
 param.t  = linspace(0, param.T, param.N);
 param.dt = param.t(2) - param.t(1);
 
 if 6 * param.T > param.N; param.implicit = 1; else; param.implicit = 0; end
+
+param.bfun_type = "nodal"; 
+param.cheb_H = 25;
+
+param.H(1) = param.N; if param.bfun_type == "cheb", param.H(1) = param.cheb_H; end
+param.H(2) = 1; % # of time series to guess 
 
 
 %% ECONOMIC PARAMETERS
@@ -59,7 +66,7 @@ param.rho = (1-exp(-param.rho*param.dt))/(param.dt*exp(-param.rho*param.dt));
 param.factor = 1/(exp(-param.rho*param.dt));
 param.gamma = 2;
 
-param.zz  = [0.9, 1.1];
+param.zz  = [0.8, 1.2];
 param.la1 = 1/3;
 param.la2 = 1/3;
 param.L   = param.la1/(param.la1+param.la2) * param.zz(1) + param.la2/(param.la1+param.la2) * param.zz(2);
@@ -82,7 +89,23 @@ end
 parse(p, varargin{:});
 param = p.Results;
 
-% Update parameters
+% % Update parameters
+% param.t = linspace(0, param.T, param.N)';
+% if param.time_grid_adjustment == 1
+%     if param.N / param.T >= 2
+%         adjustment = @(x) x; 
+%     elseif param.N / param.T >= 1
+%         adjustment = @(x) (exp(x/param.T)-1) * param.T / (exp(1)-1);
+%     elseif param.N / param.T > 0.8
+%         adjustment = @(x) x.^2 / param.T^1;
+%     else 
+%         adjustment = @(x) x.^3 / param.T^2;
+%     end
+%     param.t = adjustment(param.t);
+% end
+% param.dt = diff(param.t); param.dt(param.N) = param.dt(param.N-1);
+% 
+param.H(1) = param.N; if param.bfun_type == "cheb", param.H(1) = param.cheb_H; end
 
 
 end

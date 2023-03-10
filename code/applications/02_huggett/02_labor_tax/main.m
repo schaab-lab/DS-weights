@@ -73,16 +73,42 @@ for j = 1:param.num_theta
         ss{j}.r, ss{j}.B, ss{j}.S, ss{j}.excess_supply);
 end
 
+% Initial density
+G.g = ss{1}.g(:);
+
+%% COMPUTE TRANSITION DYNAMICS
+fprintf('\n\n:::::::::::   TRANSITION DYNAMICS   ::::::::::: \n\n');
+
+fprintf('Impulse response paths:  %.i quarters,  %.i time steps,  using %.i %s BFs\n\n', ...
+         param.T, param.N, param.H(1), param.bfun_type);
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+
+    % Initialize paths and grid: (guessing path for r)
+    X0 = ss{j}.r .* ones(param.N, 1);
+    [PHI0, param.nodes] = basis_fun_irf(X0, [], param.H(1), param.H(2), ...
+        param.bfun_type, param.t, "get_coefficient");
+
+    [diff0, G, G_dense, ~] = transition(PHI0, G, G_dense, ss{j}, param);
+
+    % Solve for prices:
+    f = @(x, y) transition(x, y{1}, y{2}, ss{j}, param); y0{1} = G; y0{2} = G_dense;
+    PHI = fsolve_newton(f, reshape(PHI0, [numel(PHI0), 1]), diff0, y0, 0, 5, 2);
+
+    % Update everything given new prices:
+    [diff, G, G_dense, sim{j}] = transition(PHI, G, G_dense, ss{j}, param);
+    sim{j}.PHI = PHI; sim{j}.param = param;
+
+end
+
+%% AGGREGATE ADDITIVE DECOMPOSITION
+
 % Normalize densities
 for j = 1:param.num_theta
     ss{j}.g = ss{j}.g .* G_dense.dx;
 end
-
-% Initial density
-G.g = ss{1}.g(:);
-
-
-%% AGGREGATE ADDITIVE DECOMPOSITION
 
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 

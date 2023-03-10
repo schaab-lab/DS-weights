@@ -1,4 +1,4 @@
-function [omega_1, omega_2, norm_factor] = DS_weights(type, j, G, P, ss, param)
+function [omega_1, omega_2, norm_factor] = DS_weights(type, j, n, G, P, sim, param)
 
 switch type
     
@@ -20,8 +20,8 @@ switch type
         % Weighted marginal utilities:
         weighted_u1 = zeros(param.discrete_types * G.J, param.N);
         for n = 1:param.N
-            P = density(j, n, P_old, ss, G, param);
-            weighted_u1(:, n) = beta(n) * P' * param.u1(ss{j}.c(:));
+            P = density(j, n, P_old, sim, G, param);
+            weighted_u1(:, n) = beta(n) * P' * param.u1(sim{j}.c{n}(:));
             P_old = P;
         end
 
@@ -45,8 +45,8 @@ switch type
         %% COMPUTE DS-WEIGHTS STOCHASTIC (for normalized utilitarian)
  
         % Compute components:
-        omega_sto = P .* param.u1(ss{j}.c(:)) ./ (P' * param.u1(ss{j}.c(:)) )';
-        omega_sto_norm = param.u1(ss{j}.c(:))' ./ sum(param.u1(ss{j}.c(:))' .* P, 2);
+        omega_sto = P .* param.u1(sim{j}.c{n}(:)) ./ (P' * param.u1(sim{j}.c{n}(:)) )';
+        omega_sto_norm = param.u1(sim{j}.c{n}(:))' ./ sum(param.u1(sim{j}.c{n}(:))' .* P, 2);
         
         % Return results
         omega_1 = omega_sto;

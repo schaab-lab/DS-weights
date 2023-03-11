@@ -35,15 +35,15 @@ param.crit_KF  = 1e-8;
 
 
 %% POLICY EXPERIMENTS
-param.num_theta = 50;
-param.theta_max = 0.75;
+param.num_theta = 51;
+param.theta_max = 0.75 + 0.0153;
 param.theta_min = 0.00;
 param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 
 % Time grid: 
 param.time_grid_adjustment = 0;
-param.T = 1000; 
-param.N = 1000; 
+param.T = 50; 
+param.N = 500; 
 
 param.t  = linspace(0, param.T, param.N);
 param.dt = param.t(2) - param.t(1);

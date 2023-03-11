@@ -1,5 +1,14 @@
 function [omega_1, omega_2, norm_factor] = DS_weights(type, j, n, G, P, sim, param)
 
+% This function return either the individual and dynamic DS-weights 
+% (as well as the normalization factor used) or the stochastic DS-weights.
+%
+% Syntax is:
+%    * [omega_ind, omega_dyn] = DS_weights('ind_dyn', j, [], G, [], sim, param)
+%    
+%    * omega_sto = DS_weights('sto', j, n, [], P, sim, param);
+%
+
 switch type
     
     case 'ind_dyn'

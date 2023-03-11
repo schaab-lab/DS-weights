@@ -95,11 +95,30 @@ for j = 1:param.num_theta
 
     % Solve for prices:
     f = @(x, y) transition(x, y{1}, y{2}, ss{j}, param); y0{1} = G; y0{2} = G_dense;
-    PHI = fsolve_newton(f, reshape(PHI0, [numel(PHI0), 1]), diff0, y0, 0, 5, 2);
+    PHI{j} = fsolve_newton(f, reshape(PHI0, [numel(PHI0), 1]), diff0, y0, 0, 5, 2);
 
     % Update everything given new prices:
-    [diff, G, G_dense, sim{j}] = transition(PHI, G, G_dense, ss{j}, param);
-    sim{j}.PHI = PHI; sim{j}.param = param;
+    %[diff, G, G_dense, sim{j}] = transition(PHI, G, G_dense, ss{j}, param);
+    %sim{j}.PHI = PHI; sim{j}.param = param;
+
+end
+
+fprintf('Update everithing given new prices in a finer grid. \n\n');
+
+old_t_grid = param.t;
+param = define_parameters('N', param.N * 10);
+param.old_t = old_t_grid;
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+        
+    param.nodes = param.t;
+    PHI_finer = interp1(param.old_t, PHI{j}, param.t);
+
+    % Update everything given new prices:
+    [diff, G, G_dense, sim{j}] = transition(PHI_finer, G, G_dense, ss{j}, param);
+    sim{j}.PHI = PHI; sim{j}.param = param; sim{j}.diff = diff;
 
 end
 
@@ -119,13 +138,13 @@ for j = 1:param.num_theta
 end
 dW = vec_AE + vec_RS + vec_IS + vec_RE;
 
-% Check error
-max_error=0;
-for j = 1:param.num_theta-1
-    dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
-    max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
-end
-warning('\nMaximum error dW is %.5f', max_error);
+% % Check error (this only applies to case of steady-state comparisons)
+% max_error=0;
+% for j = 1:param.num_theta-1
+%     dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
+%     max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
+% end
+% warning('\nMaximum error dW is %.5f', max_error);
 
 
 %% PLOT

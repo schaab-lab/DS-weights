@@ -43,7 +43,7 @@ param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 % Time grid: 
 param.time_grid_adjustment = 0;
 param.T = 50; 
-param.N = 500; 
+param.N = 500;
 
 param.t  = linspace(0, param.T, param.N);
 param.dt = param.t(2) - param.t(1);
@@ -105,7 +105,14 @@ param = p.Results;
 % end
 % param.dt = diff(param.t); param.dt(param.N) = param.dt(param.N-1);
 % 
+
+param.t  = linspace(0, param.T, param.N);
+param.dt = param.t(2) - param.t(1);
+
+if 6 * param.T > param.N; param.implicit = 1; else; param.implicit = 0; end
+
 param.H(1) = param.N; if param.bfun_type == "cheb", param.H(1) = param.cheb_H; end
+
 
 
 end

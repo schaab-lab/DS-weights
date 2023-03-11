@@ -106,7 +106,7 @@ end
 fprintf('Update everithing given new prices in a finer grid. \n\n');
 
 old_t_grid = param.t;
-param = define_parameters('N', param.N * 10);
+param = define_parameters('N', param.N_fine);
 param.old_t = old_t_grid;
 
 for j = 1:param.num_theta
@@ -122,14 +122,15 @@ for j = 1:param.num_theta
 
 end
 
-%% AGGREGATE ADDITIVE DECOMPOSITION
-
 % Normalize initial density
 G.g = G.g .* G_dense.dx;
 
+
+%% AGGREGATE ADDITIVE DECOMPOSITION
+
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 
-[AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, param);
+[AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, ss, param);
 
 % Save as vectors to plot them
 [vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));
@@ -138,13 +139,13 @@ for j = 1:param.num_theta
 end
 dW = vec_AE + vec_RS + vec_IS + vec_RE;
 
-% % Check error (this only applies to case of steady-state comparisons)
-% max_error=0;
-% for j = 1:param.num_theta-1
-%     dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
-%     max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
-% end
-% warning('\nMaximum error dW is %.5f', max_error);
+% Check error
+max_error=0;
+for j = 1:param.num_theta-1
+    dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
+    max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
+end
+warning('\nMaximum error dW is %.5f', max_error);
 
 
 %% PLOT

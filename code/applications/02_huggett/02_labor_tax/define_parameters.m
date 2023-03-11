@@ -44,6 +44,7 @@ param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 param.time_grid_adjustment = 0;
 param.T = 50; 
 param.N = 500;
+param.N_fine = param.N * 10;
 
 param.t  = linspace(0, param.T, param.N);
 param.dt = param.t(2) - param.t(1);
@@ -56,6 +57,9 @@ param.cheb_H = 25;
 param.H(1) = param.N; if param.bfun_type == "cheb", param.H(1) = param.cheb_H; end
 param.H(2) = 1; % # of time series to guess 
 
+% Time grid for steady state welfare effect
+param.ss_T = 1000; 
+param.ss_N = 10000;
 
 %% ECONOMIC PARAMETERS
 

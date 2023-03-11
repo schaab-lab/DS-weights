@@ -43,7 +43,7 @@ param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 % Time grid: 
 param.time_grid_adjustment = 0;
 param.T = 1000; 
-param.N = 100; 
+param.N = 1000; 
 
 param.t  = linspace(0, param.T, param.N);
 param.dt = param.t(2) - param.t(1);

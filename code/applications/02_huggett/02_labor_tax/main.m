@@ -22,7 +22,7 @@ clc
 diary ./output/output.log
 diary on
 
-addpath(genpath('../../SparseEcon/'))
+addpath(genpath('../../../SparseEcon/'))
 figure_format;
 
 fprintf('Running algorithm:\n')
@@ -105,14 +105,12 @@ end
 
 %% AGGREGATE ADDITIVE DECOMPOSITION
 
-% Normalize densities
-for j = 1:param.num_theta
-    ss{j}.g = ss{j}.g .* G_dense.dx;
-end
+% Normalize initial density
+G.g = G.g .* G_dense.dx;
 
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 
-[AE, RS, IS, RE, norm_factor] = additive_decomp(G, ss, param);
+[AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, param);
 
 % Save as vectors to plot them
 [vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));

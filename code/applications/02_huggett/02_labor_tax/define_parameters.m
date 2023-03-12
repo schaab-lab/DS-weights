@@ -35,8 +35,8 @@ param.crit_KF  = 1e-8;
 
 
 %% POLICY EXPERIMENTS
-param.num_theta = 51;
-param.theta_max = 0.75 + 0.0153;
+param.num_theta = 21;
+param.theta_max = 0.8 + 0.0421;
 param.theta_min = 0.00;
 param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 
@@ -59,7 +59,7 @@ param.H(2) = 1; % # of time series to guess
 
 % Time grid for steady state welfare effect
 param.ss_T = 1000; 
-param.ss_N = 10000;
+param.ss_N = 100000;
 
 %% ECONOMIC PARAMETERS
 

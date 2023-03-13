@@ -22,7 +22,7 @@ clc
 diary ./output/output.log
 diary on
 
-addpath(genpath('../../SparseEcon/'))
+addpath(genpath('../../../SparseEcon/'))
 figure_format;
 
 fprintf('Running algorithm:\n')

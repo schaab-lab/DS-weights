@@ -22,7 +22,7 @@ clc
 diary ./output/output.log
 diary on
 
-addpath(genpath('../../SparseEcon/'))
+addpath(genpath('../../../SparseEcon/'))
 figure_format;
 
 fprintf('Running algorithm:\n')
@@ -73,20 +73,64 @@ for j = 1:param.num_theta
         ss{j}.r, ss{j}.B, ss{j}.S, ss{j}.excess_supply);
 end
 
-% Normalize densities
-for j = 1:param.num_theta
-    ss{j}.g = ss{j}.g .* G_dense.dx;
-end
-
 % Initial density
 G.g = ss{1}.g(:);
+
+%% COMPUTE TRANSITION DYNAMICS
+fprintf('\n\n:::::::::::   TRANSITION DYNAMICS   ::::::::::: \n\n');
+
+fprintf('Impulse response paths:  %.i quarters,  %.i time steps,  using %.i %s BFs\n\n', ...
+         param.T, param.N, param.H(1), param.bfun_type);
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+
+    % Initialize paths and grid: (guessing path for r)
+    X0 = ss{j}.r .* ones(param.N, 1);
+    [PHI0, param.nodes] = basis_fun_irf(X0, [], param.H(1), param.H(2), ...
+        param.bfun_type, param.t, "get_coefficient");
+
+    [diff0, G, G_dense, ~] = transition(PHI0, G, G_dense, ss{j}, param);
+
+    % Solve for prices:
+    f = @(x, y) transition(x, y{1}, y{2}, ss{j}, param); y0{1} = G; y0{2} = G_dense;
+    PHI{j} = fsolve_newton(f, reshape(PHI0, [numel(PHI0), 1]), diff0, y0, 0, 5, 2);
+
+    % Update everything given new prices:
+    %[diff, G, G_dense, sim{j}] = transition(PHI, G, G_dense, ss{j}, param);
+    %sim{j}.PHI = PHI; sim{j}.param = param;
+
+end
+
+fprintf('Update everithing given new prices in a finer grid. \n\n');
+
+old_t_grid = param.t;
+param = define_parameters('N', param.N_fine);
+param.old_t = old_t_grid;
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+        
+    param.nodes = param.t;
+    PHI_finer = interp1(param.old_t, PHI{j}, param.t);
+
+    % Update everything given new prices:
+    [diff, G, G_dense, sim{j}] = transition(PHI_finer, G, G_dense, ss{j}, param);
+    sim{j}.PHI = PHI; sim{j}.param = param; sim{j}.diff = diff;
+
+end
+
+% Normalize initial density
+G.g = G.g .* G_dense.dx;
 
 
 %% AGGREGATE ADDITIVE DECOMPOSITION
 
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 
-[AE, RS, IS, RE, norm_factor] = additive_decomp(G, ss, param);
+[AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, ss, param);
 
 % Save as vectors to plot them
 [vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));

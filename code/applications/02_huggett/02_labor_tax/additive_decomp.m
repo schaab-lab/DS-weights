@@ -1,9 +1,9 @@
-function [AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, ss, param)
+function [AE, RS, IS, RE] = additive_decomp(G, sim, ss, param)
 
 %% TRANSITION WELFARE EFFECTS
 
 % Pre-allocation
-[AE, RS, IS, RE, norm_factor] = deal(cell(param.num_theta, 1));
+[AE, RS, IS, RE] = deal(cell(param.num_theta, 1));
 g = reshape(G.g, [param.discrete_types * G.J, 1]);
 
 for j = 1:param.num_theta
@@ -13,7 +13,7 @@ for j = 1:param.num_theta
     P_old   = speye(2*G.J);
     P_old_j = speye(2*G.J);
 
-    [omega_ind, omega_dyn, norm_factor{j}] = DS_weights('ind_dyn', j, [], G, [], sim, param);
+    [omega_ind, omega_dyn] = DS_weights('ind_dyn', j, [], G, [], sim, param);
     [AE{j}, RS{j}, IS{j}, RE{j}] = deal(0);
     
     for n = 1:param.N
@@ -78,7 +78,7 @@ for j = 1:param.num_theta
 end
 
 % add steady-state welfare effects
-[AE_ss, RS_ss, IS_ss, RE_ss, norm_factor] = additive_decomp_ss(G, ss, param);
+[AE_ss, RS_ss, IS_ss, RE_ss] = additive_decomp_ss(G, ss, param);
 for j = 1:param.num_theta
     
     AE{j} = AE{j} + exp(param.rho * param.T) * AE_ss{j};
@@ -92,13 +92,13 @@ end
 
 %% STEADY-STATE WELFARE EFFECTS
 
-function [AE, RS, IS, RE, norm_factor] = additive_decomp_ss(G, ss, param)
+function [AE, RS, IS, RE] = additive_decomp_ss(G, ss, param)
 
 % Increase last time period
 param = define_parameters('N', param.ss_N, 'T', param.ss_T);
 
 % Pre-allocation
-[AE, RS, IS, RE, norm_factor] = deal(cell(param.num_theta, 1));
+[AE, RS, IS, RE] = deal(cell(param.num_theta, 1));
 g = reshape(G.g, [param.discrete_types * G.J, 1]);
 
 for j = 1:param.num_theta
@@ -108,7 +108,7 @@ for j = 1:param.num_theta
     P_old   = ss{j}.P;
     if j < param.num_theta, P_old_j = ss{j+1}.P; else, P_old_j = ss{j-1}.P; end
 
-    [omega_ind, omega_dyn, norm_factor{j}] = DS_weights('ss_ind_dyn', j, [], G, [], ss, param);
+    [omega_ind, omega_dyn] = DS_weights('ss_ind_dyn', j, [], G, [], ss, param);
     [AE{j}, RS{j}, IS{j}, RE{j}] = deal(0);
     
     for n = 1:param.N

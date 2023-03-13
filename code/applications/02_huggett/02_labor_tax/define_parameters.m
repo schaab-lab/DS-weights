@@ -40,7 +40,8 @@ param.theta_max = 0.8 + 0.0421;
 param.theta_min = 0.00;
 param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 
-% Time grid: 
+%% TIME GRID PARAMETERS
+
 param.time_grid_adjustment = 0;
 param.T = 50; 
 param.N = 500;
@@ -59,7 +60,7 @@ param.H(2) = 1; % # of time series to guess
 
 % Time grid for steady state welfare effect
 param.ss_T = 1000; 
-param.ss_N = 100000;
+param.ss_N = 10000;
 
 %% ECONOMIC PARAMETERS
 

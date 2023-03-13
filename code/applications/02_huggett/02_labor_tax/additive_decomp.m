@@ -98,7 +98,7 @@ function [AE, RS, IS, RE] = additive_decomp_ss(G, ss, param)
 param = define_parameters('N', param.ss_N, 'T', param.ss_T);
 
 % Pre-allocation
-[AE, RS, IS, RE, norm_factor] = deal(cell(param.num_theta, 1));
+[AE, RS, IS, RE] = deal(cell(param.num_theta, 1));
 g = reshape(G.g, [param.discrete_types * G.J, 1]);
 
 for j = 1:param.num_theta

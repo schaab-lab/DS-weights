@@ -40,7 +40,8 @@ param.theta_max = 0.8 + 0.0421;
 param.theta_min = 0.00;
 param.dtheta = (param.theta_max - param.theta_min) / (param.num_theta - 1);
 
-% Time grid: 
+%% TIME GRID PARAMETERS
+
 param.time_grid_adjustment = 0;
 param.T = 50; 
 param.N = 500;

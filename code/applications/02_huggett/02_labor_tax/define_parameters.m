@@ -59,7 +59,7 @@ param.H(2) = 1; % # of time series to guess
 
 % Time grid for steady state welfare effect
 param.ss_T = 1000; 
-param.ss_N = 100000;
+param.ss_N = 10000;
 
 %% ECONOMIC PARAMETERS
 

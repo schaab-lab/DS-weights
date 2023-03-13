@@ -130,7 +130,7 @@ G.g = G.g .* G_dense.dx;
 
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 
-[AE, RS, IS, RE, norm_factor] = additive_decomp(G, sim, ss, param);
+[AE, RS, IS, RE] = additive_decomp(G, sim, ss, param);
 
 % Save as vectors to plot them
 [vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));
@@ -138,15 +138,6 @@ for j = 1:param.num_theta
     vec_AE(j) = AE{j}; vec_RS(j) = RS{j}; vec_IS(j) = IS{j}; vec_RE(j) = RE{j};
 end
 dW = vec_AE + vec_RS + vec_IS + vec_RE;
-
-% Check error
-max_error=0;
-for j = 1:param.num_theta-1
-    dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
-    max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
-end
-warning('\nMaximum error dW is %.5f', max_error);
-
 
 %% PLOT
 

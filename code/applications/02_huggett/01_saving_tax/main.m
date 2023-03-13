@@ -1,7 +1,7 @@
 %------------------------------------------------------------------------%
 % 
-% This code computes DS-weights and welfare assessments for savings tax
-% policy in the canonical Huggett (1993) model.
+% This code computes DS-weights and welfare assessments for savings
+% tax policy in the canonical Huggett (1993) model.
 % 
 % Code written by Sergi Barcons, Eduardo Davila and Andreas Schaab.
 % Current version: March 2023. First version: August 2022.
@@ -73,87 +73,91 @@ for j = 1:param.num_theta
         ss{j}.r, ss{j}.B, ss{j}.S, ss{j}.excess_supply);
 end
 
-
-%% TRANSITION DENSITIES
-
-fprintf('\n\n:::::::::::   TRANSITION DENSITIES   ::::::::::: \n');
-
-if G.J ~= G_dense.J, error('Sparse grids not yet accommodated\n'); end
-
-% Transition densities vary with the policy
-P = cell(param.num_theta, 1);
-for j = 1:param.num_theta
-    fprintf('\n     ... computing p(θ = %.2f)', G.theta(j));
-    
-    P{j} = cell(param.N, 1);
-    P{j}{1} = eye(param.discrete_types * G.J, param.discrete_types * G.J);
-
-    for n = 1:param.N-1
-        % Explicit time iteration
-        if param.implicit
-            P{j}{n+1} = P{j}{n} + param.dt * ss{j}.A' * P{j}{n};
-        
-        % Implicit time iteration:
-        else
-            B = 1/param.dt .* speye(param.discrete_types * G.J) - ss{j}.A';
-            b = P{j}{n} / param.dt;
-            P{j}{n+1} = B\b;
-        end
-        
-        assert(abs(sum(sum(((P{j}{n+1}' .* ss{j}.g(:)) * G_dense.dx)))-1) < 1e-5, ...
-            'Transition probability not normalized.')
-    end
-    
-end
-
-% Normalize densities
-for j = 1:param.num_theta
-    ss{j}.g = ss{j}.g .* G_dense.dx;
-end
-
 % Initial density
 G.g = ss{1}.g(:);
+
+%% COMPUTE TRANSITION DYNAMICS
+fprintf('\n\n:::::::::::   TRANSITION DYNAMICS   ::::::::::: \n\n');
+
+fprintf('Impulse response paths:  %.i quarters,  %.i time steps,  using %.i %s BFs\n\n', ...
+         param.T, param.N, param.H(1), param.bfun_type);
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+
+    % Initialize paths and grid: (guessing path for r)
+    X0 = ss{j}.r .* ones(param.N, 1);
+    [PHI0, param.nodes] = basis_fun_irf(X0, [], param.H(1), param.H(2), ...
+        param.bfun_type, param.t, "get_coefficient");
+
+    [diff0, G, G_dense, ~] = transition(PHI0, G, G_dense, ss{j}, param);
+
+    % Solve for prices:
+    f = @(x, y) transition(x, y{1}, y{2}, ss{j}, param); y0{1} = G; y0{2} = G_dense;
+    PHI{j} = fsolve_newton(f, reshape(PHI0, [numel(PHI0), 1]), diff0, y0, 0, 5, 2);
+
+    % Update everything given new prices:
+    %[diff, G, G_dense, sim{j}] = transition(PHI, G, G_dense, ss{j}, param);
+    %sim{j}.PHI = PHI; sim{j}.param = param;
+
+end
+
+fprintf('Update everithing given new prices in a finer grid. \n\n');
+
+old_t_grid = param.t;
+param = define_parameters('N', param.N_fine);
+param.old_t = old_t_grid;
+
+for j = 1:param.num_theta
+    
+    param.theta = G.theta(j);
+        
+    param.nodes = param.t;
+    PHI_finer = interp1(param.old_t, PHI{j}, param.t);
+
+    % Update everything given new prices:
+    [diff, G, G_dense, sim{j}] = transition(PHI_finer, G, G_dense, ss{j}, param);
+    sim{j}.PHI = PHI; sim{j}.param = param; sim{j}.diff = diff;
+
+end
+
+% Normalize initial density
+G.g = G.g .* G_dense.dx;
+
 
 %% AGGREGATE ADDITIVE DECOMPOSITION
 
 fprintf('\n\n:::::::::::   AGGREGATE ADDITIVE DECOMPOSITION   ::::::::::: \n\n');
 
-[AE, RS, IS, RE, norm_factor] = additive_decomp(P, G, ss, param);
+[AE, RS, IS, RE] = additive_decomp(G, sim, ss, param);
 
-% save as vectors to plot them
+% Save as vectors to plot them
 [vec_AE, vec_RS, vec_IS, vec_RE] = deal(zeros(param.num_theta, 1));
 for j = 1:param.num_theta
     vec_AE(j) = AE{j}; vec_RS(j) = RS{j}; vec_IS(j) = IS{j}; vec_RE(j) = RE{j};
 end
 dW = vec_AE + vec_RS + vec_IS + vec_RE;
 
-% check error
-max_error=0;
-for j = 1:param.num_theta-1
-    dW_hjb = (ss{j+1}.V(:) - ss{j}.V(:))' * ss{1}.g(:) / param.dtheta;
-    max_error = max(max_error, abs(dW_hjb - norm_factor{j} * dW(j)));
-end
-warning('\nMaximum error dW is %.5f', max_error);
-
-
-%% PLOTS
-
+%% PLOT
 
 figure; hold on;
 %set(gcf,'position',[440 387 400 400])
-l0 = plot(G.theta(1:end-1), dW(1:end-1),'color',[255,188,000]./255);
-l1 = plot(G.theta(1:end-1), vec_AE(1:end-1),'m--');
-l2 = plot(G.theta(1:end-1), vec_RS(1:end-1),'c:');
-l3 = plot(G.theta(1:end-1), vec_IS(1:end-1),'-.','color',[000,076,153]./255);
-l4 = plot(G.theta(1:end-1), vec_RE(1:end-1),'--','color',[202,091,035]./255);
-xlim([0, G.theta(end-1)])
+l0 = plot(G.theta(1:param.num_theta-1), dW(1:param.num_theta-1),'color',[255,188,000]./255);
+l1 = plot(G.theta(1:param.num_theta-1), vec_AE(1:param.num_theta-1),'m--');
+l2 = plot(G.theta(1:param.num_theta-1), vec_RS(1:param.num_theta-1),'c:');
+l3 = plot(G.theta(1:param.num_theta-1), vec_IS(1:param.num_theta-1),'-.','color',[000,076,153]./255);
+l4 = plot(G.theta(1:param.num_theta-1), vec_RE(1:param.num_theta-1),'--','color',[202,091,035]./255);
 hold off;
+xlim([0, G.theta(param.num_theta-1)])
 xlabel('$\theta$ (policy)','Interpreter','Latex','Fontsize',16);
 title('Marginal Welfare Assessments','Interpreter','Latex','Fontsize',16);
 legend([l0, l1, l2, l3, l4], {'$\frac{dW}{d\theta}$', '$\Xi_{AE}$ (Agg. Efficiency)', '$\Xi_{RS}$ (Risk-Sharing)', '$\Xi_{IS}$ (Inter.-Sharing)', '$\Xi_{RD}$ (Redistribution)'}, ...
         'Interpreter', 'Latex', 'box', 'off', 'Location', 'NorthEast');
 exportgraphics(gcf, './output/agg_additive_decomposition.eps');
+    
 
+    
 %% OUTPUT
 run_time = toc(run_time); fprintf('\n\nAlgorithm converged. Run-time of: %.2f seconds.\n', run_time);
 
@@ -170,4 +174,7 @@ run_time = toc(run_time); fprintf('\n\nAlgorithm converged. Run-time of: %.2f se
 % end
 
 diary off
+
+
+
 

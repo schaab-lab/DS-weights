@@ -13,3 +13,8 @@ This repository provides pedagogical user guides and a toolbox to compute welfar
 
 We illustrate the power and applicability of our new approach to welfare analysis across several applications, for which we provide pedagogical code and tutorials. These can be found under ``local_repo_path/applications/``. Examples include:
 - 01: social transfer policy in an endowment economy
+- 02: optimal labor income taxation
+- 03: borrowing limits
+- 04: optimal fiscal policy in a Huggett economy
+
+We want to thank Sergi Barcons for his contributions to this code repository. Abdelrahman Hassanein and Flint O'Neil provided excellent research assistance.
